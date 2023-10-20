@@ -112,10 +112,9 @@ module RailsBrotliCache
       expanded_names = names.map { |name| expanded_cache_key(name) }
       options = options.reverse_merge(@init_options)
 
-      reads = core_store.send(:read_multi_entries, expanded_names, **options)
-      reads.map do |key, val|
+      reads = core_store.send(:read_multi_entries, expanded_names, **options).to_h do |key, val|
         [source_cache_key(key), uncompressed(val, options)]
-      end.to_h
+      end
 
       writes  = {}
       ordered = names.index_with do |name|
