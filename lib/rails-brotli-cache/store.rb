@@ -99,11 +99,11 @@ module RailsBrotliCache
 
     def read_multi(*names)
       options = names.extract_options!
-      names = names.map { |name| expanded_cache_key(name) }
+      expanded_names = names.to_h { |name| [expanded_cache_key(name), name] }
       options = options.reverse_merge(@init_options)
 
-      core_store.read_multi(*names, options).map do |key, val|
-        [source_cache_key(key), uncompressed(val, options)]
+      core_store.read_multi(*expanded_names.keys, options).map do |key, val|
+        [expanded_names[key], uncompressed(val, options)]
       end.to_h
     end
 
@@ -112,14 +112,15 @@ module RailsBrotliCache
       expanded_names = names.map { |name| expanded_cache_key(name) }
       options = options.reverse_merge(@init_options)
 
-      reads   = core_store.send(:read_multi_entries, expanded_names, **options)
+      reads = core_store.send(:read_multi_entries, expanded_names, **options)
       reads.map do |key, val|
         [source_cache_key(key), uncompressed(val, options)]
       end.to_h
 
       writes  = {}
       ordered = names.index_with do |name|
-        reads.fetch(name) { writes[name] = yield(name) }
+        key = ActiveSupport::Cache.expand_cache_key(name)
+        reads.fetch(key) { writes[name] = yield(name) }
       end
 
       write_multi(writes)
