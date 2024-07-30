@@ -181,7 +181,11 @@ module RailsBrotliCache
         payload
       end
 
-      Marshal.load(serialized)
+      begin
+        Marshal.load(serialized)
+      rescue ArgumentError => error
+        raise ActiveSupport::Cache::DeserializationError, error.message
+      end
     end
 
     def expanded_cache_key(name)

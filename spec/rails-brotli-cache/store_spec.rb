@@ -64,6 +64,13 @@ describe RailsBrotliCache do
       expect(cache_store.read([:views, "controller/action", collection])).to eq(cached_fragment)
     end
 
+    context "when Marshal.load raises an ArgumentError" do
+      it "re-raises as ActiveSupport::Cache::DeserializationError so ActiveSupport will treat it as a cache miss" do
+        allow(Marshal).to receive(:load).and_raise(ArgumentError.new("dump format error"))
+        expect { cache_store.fetch("error-key") { "some error content" } }.to raise_error(ActiveSupport::Cache::DeserializationError, "dump format error")
+      end
+    end
+
     context "{ force: true }" do
       it "raises an error if block is not provided" do
         expect {
